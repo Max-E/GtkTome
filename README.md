@@ -56,6 +56,7 @@ for this are:
  * bulk_append_pages corresponding to append_page
  * bulk_prepend_pages corresponding to prepend_page
  * bulk_insert_pages corresponding to insert_page
+
 These take lists of label widgets (or callbacks, see below) instead of a single
 one. This is a much faster operation than inserting them one at a time.
 
