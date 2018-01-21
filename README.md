@@ -42,3 +42,28 @@ you should use that version instead. So far, there is:
    moved, followed by the new page number of the tab being moved, followed by
    any user data.
 
+Because GtkTome only keeps track of tab labels for you, not tab contents, the
+methods for adding tabs take only an argument for the label, whereas
+GtkNotebook's methods expect another argument for the page contents widget.
+However, they are named the same:
+ * append_page and prepend_page take a single argument for the label
+ * insert_page takes two arguments, the label and a position to insert the new
+   tab at
+
+Just like GtkNotebook, GtkTome allows you to add tabs one at a time. However,
+to achieve maximum scalability, GtkTome can also add tabs in bulk. The methods
+for this are:
+ * bulk_append_pages corresponding to append_page
+ * bulk_prepend_pages corresponding to prepend_page
+ * bulk_insert_pages corresponding to insert_page
+These take lists of label widgets (or callbacks, see below) instead of a single
+one. This is a much faster operation than inserting them one at a time.
+
+Just like GtkNotebook, GtkTome can accept any widget as a tab label. However,
+To achieve maximum scalability, GtkTome can also accept a function that returns
+a widget as a tab label. This function will be called with two arguments: the
+GtkTome object itself, and an integer page number indicating where the tab in
+question is in the list of all tabs. This function is expected to return a
+single widget. If you go this route, you won't have to create all your widgets
+up front. Creating a huge list of closures is much, much faster than creating
+a huge list of GTK widgets, even something simple like GtkLabel.

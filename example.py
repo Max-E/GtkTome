@@ -51,7 +51,7 @@ removebutton.connect ("clicked", removetab)
 addbutton = Gtk.Button (image = Gtk.Image (stock = Gtk.STOCK_ADD))
 tabbar.pack_end (addbutton, False, False, 0)
 
-total_append_count = 100000
+total_append_count = 1000000
 def addtab (button = None):
     global total_append_count
     npages = tome.get_n_pages ()
@@ -71,13 +71,21 @@ def switchtab (tome, tab_number):
     return True
 tome.connect ("switch-tome-page", switchtab)
 
-tome.bulk_append_pages ([Gtk.Label ("Appended tab {} (tab {})".format (i, i + 2)) for i in xrange (100000)])
+def make_label_closure (append_tab_num):
+    def make_label (_tome, page_num):
+        return Gtk.Label ("Appended tab {} (tab {})".format (append_tab_num,
+                                                             page_num))
+    return make_label
+tome.bulk_append_pages ([make_label_closure (i) for i in xrange (1000000)])
 
 tome.prepend_page (Gtk.Label ("Prepend tab title"))
 tome.insert_page (Gtk.Label ("Insert tab title"), 1)
 
 def fixtitles (tome, page_num):
     for i in xrange (page_num, tome.get_n_pages ()):
+        label = tome.get_tab_label (i)
+        if callable (label):
+            continue
         text = tome.get_tab_label_text (i)
         if text.startswith ("Appended"):
             pfx, _ = text.rsplit (None, 1)
@@ -94,6 +102,9 @@ def reorder (tome, old_page_num, new_page_num):
     lower = min (old_page_num, new_page_num)
     upper = max (old_page_num, new_page_num) + 1
     for i in xrange (lower, upper):
+        label = tome.get_tab_label (i)
+        if callable (label):
+            continue
         text = tome.get_tab_label_text (i)
         if text.startswith ("Appended"):
             pfx, _ = text.rsplit (None, 1)

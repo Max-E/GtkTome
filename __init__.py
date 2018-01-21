@@ -51,6 +51,8 @@ class Tome (Gtk.Notebook):
         for i in xrange (self._n_real_tabs ()):
             dummychild = super (Tome, self).get_nth_page (i)
             label = self.labels[i + left_idx]
+            if callable (label):
+                label = label (self, i + left_idx)
             label.set_size_request (self.tab_width, -1)
             super (Tome, self).set_tab_label (dummychild, label)
         # We only want GTK's built-in resize calculations to happen here, not
@@ -228,5 +230,7 @@ class Tome (Gtk.Notebook):
 
     def get_tab_label_text (self, page_num):
         label = self.get_tab_label (page_num)
+        if callable (label):
+            label = label (self, page_num)
         if isinstance (label, Gtk.Label):
             return label.get_text ()
