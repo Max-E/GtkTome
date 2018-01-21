@@ -76,11 +76,11 @@ class Tome (Gtk.Notebook):
         self.suppress_switch = True
         left_idx = self._get_left_idx ()
         page_num = self.true_idx - left_idx
-        if page_num == self._n_real_tabs () - 1 and self.right_idx < self.get_n_pages ():
-            self.right_idx = self.true_idx + 2
+        if page_num >= self._n_real_tabs () - 1 and self.right_idx < self.get_n_pages ():
+            self.right_idx = min (self.true_idx + 2, self.get_n_pages ())
             super (Tome, self).set_current_page (0)
-            super (Tome, self).set_current_page (self._n_real_tabs () - 2)
-        elif page_num == 0 and left_idx > 0:
+            super (Tome, self).set_current_page (self.true_idx - self._get_left_idx ())
+        elif page_num <= 0 and left_idx > 0:
             last_real_tab = self._n_real_tabs () - 1
             # we want true_idx to be the first real tab
             self.right_idx = self.true_idx + last_real_tab

@@ -1,6 +1,8 @@
 #! /usr/bin/env python2
 # Example application for GtkTome
 
+import random
+
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -21,6 +23,22 @@ windowbox.pack_start (tabbar, False, False, 0)
 
 tome = Tome (133)
 tabbar.pack_start (tome, True, True, 0)
+
+lastbutton = Gtk.Button (label = "Last")
+tabbar.pack_end (lastbutton, False, False, 0)
+lastbutton.connect ("clicked", lambda button: tome.set_current_page (tome.get_n_pages () - 1))
+
+shufflebutton = Gtk.Button (label = "Random")
+tabbar.pack_end (shufflebutton, False, False, 0)
+
+def shuffletabs (button = None):
+    tome.set_current_page (random.randint (0, tome.get_n_pages () - 1))
+    return True
+shufflebutton.connect ("clicked", shuffletabs)
+
+firstbutton = Gtk.Button (label = "First")
+tabbar.pack_end (firstbutton, False, False, 0)
+firstbutton.connect ("clicked", lambda button: tome.set_current_page (0))
 
 removebutton = Gtk.Button (image = Gtk.Image (stock = Gtk.STOCK_REMOVE))
 tabbar.pack_end (removebutton, False, False, 0)
