@@ -198,7 +198,8 @@ class Tome (Gtk.Notebook):
             page_num += self.get_n_pages ()
         assert page_num < self.get_n_pages ()
         self.labels[page_num] = tab_text
-        self._update_labels ()
+        if page_num >= self._get_left_idx () and page_num < self.right_idx:
+            self._update_labels ()
 
     def get_tab_label_text (self, page_num):
         if page_num < 0:
