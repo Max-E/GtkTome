@@ -52,10 +52,10 @@ addbutton = Gtk.Button (image = Gtk.Image (stock = Gtk.STOCK_ADD))
 tabbar.pack_end (addbutton, False, False, 0)
 
 total_append_count = 0
-def addtab (button = None, total_count_offset = 0):
+def addtab (button = None):
     global total_append_count
     total_append_count += 1
-    npages = tome.get_n_pages () + total_count_offset
+    npages = tome.get_n_pages ()
     tome.append_page ("Appended tab {} (tab {})".format (total_append_count, npages))
     return True
 addbutton.connect ("clicked", addtab)
@@ -71,8 +71,7 @@ def switchtab (tome, tab_number):
     return True
 tome.connect ("switch-tome-page", switchtab)
 
-for i in xrange (10000):
-    addtab (total_count_offset = 2)
+tome.bulk_append_pages (["Appended tab {} (tab {})".format (i, i + 2) for i in xrange (1000000)])
 
 tome.prepend_page ("Prepend tab title")
 tome.insert_page ("Insert tab title", 1)

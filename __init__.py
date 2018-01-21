@@ -116,8 +116,30 @@ class Tome (Gtk.Notebook):
     def insert_page (self, label_text, position):
         if position == -1:
             return self.append_page (label_text)
+        if position < 0:
+            position += self.get_n_pages ()
         self.labels.insert (position, label_text)
         self.emit ("tome-page-added", position)
+        self.right_idx = max (self._n_real_tabs (), position)
+        self.set_current_page (position)
+
+    def bulk_append_pages (self, label_texts):
+        inserted_page = self.get_n_pages () - 1 + min (1, len (label_texts))
+        self.labels += label_texts
+        self._update_tabs ()
+        self.set_current_page (inserted_page)
+
+    def bulk_prepend_pages (self, label_texts):
+        return self.bukl_insert_pages (label_texts, 0)
+
+    def bulk_insert_pages (self, label_texts, position):
+        if position == -1:
+            return self.bulk_append_pages (label_text)
+        if position < 0:
+            position += self.get_n_pages ()
+        self.labels = self.labels[:position] + label_texts + self.labels[position:]
+        for i in xrange (position, len (label_texts)):
+            self.emit ("tome-page-added", i)
         self.right_idx = max (self._n_real_tabs (), position)
         self.set_current_page (position)
 
