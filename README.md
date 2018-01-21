@@ -22,7 +22,6 @@ However, GtkTome has some limitations that GtkNotebook doesn't have.
    Also, if your tab labels aren't unique, you are responsible for keeping
    track of what each tab number means as tabs are added, removed, and
    reordered.
- * Currently, tab labels may only be text.
  * While GtkNotebook allows you to choose whether each individual tab is
    reorderable, GtkTome requires you to choose whether or not every tab is
    reorderable.

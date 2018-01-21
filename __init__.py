@@ -20,8 +20,10 @@ class Tome (Gtk.Notebook):
         self.right_idx = 0
         self.label_widgets = []
         self.labels = []
+        self.label_state = None
         self.suppress_switch = False
         self.connect_after ("switch-page", self._switch_page_cb)
+        self.suppress_resize = False
         self.connect_after ("size-allocate", self._resize_cb)
         self.connect_after ("page-reordered", self._reorder_cb)
         self.reorderable = reorderable
@@ -29,17 +31,34 @@ class Tome (Gtk.Notebook):
         self.set_scrollable (True)
         self.set_scrollable = None
         # some APIs just don't make sense for tomes
-        self.get_nth_page = self.get_tab_label = self.set_tab_label = None
+        self.get_nth_page = None
 
     def _n_real_tabs (self):
-        n = len (self.label_widgets)
-        assert n == super (Tome, self).get_n_pages ()
-        return n
+        return super (Tome, self).get_n_pages ()
 
     def _update_labels (self):
         left_idx = self._get_left_idx ()
-        for i, widget in enumerate (self.label_widgets):
-            widget.set_text (self.labels[i + left_idx])
+        # Suppress unnecessary label updating if nothing needs to change. This
+        # is actually necessary because updating the label state during drag-
+        # and-drop reordering breaks rendering.
+        label_state = (left_idx, self.right_idx)
+        if self.label_state == label_state:
+            return
+        self.label_state = label_state
+        for i in xrange (self._n_real_tabs ()):
+            dummychild = super (Tome, self).get_nth_page (i)
+            super (Tome, self).set_tab_label (dummychild, None)
+        for i in xrange (self._n_real_tabs ()):
+            dummychild = super (Tome, self).get_nth_page (i)
+            label = self.labels[i + left_idx]
+            label.set_size_request (self.tab_width, -1)
+            super (Tome, self).set_tab_label (dummychild, label)
+        # We only want GTK's built-in resize calculations to happen here, not
+        # any of our own stuff.
+        old_suppress = self.suppress_resize
+        self.suppress_resize = True
+        self.resize_children ()
+        self.suppress_resize = old_suppress
 
     def _update_tabs (self):
         old_suppress = self.suppress_switch
@@ -54,7 +73,6 @@ class Tome (Gtk.Notebook):
             sub = self._n_real_tabs () - targ
             for _ in xrange (sub):
                 self.right_idx = max (self.right_idx - 1, true_idx)
-                self.label_widgets.pop ()
                 super (Tome, self).remove_page (-1)
         else:
             targ = min (self.get_n_pages (), self._n_real_tabs () + targ_mag)
@@ -63,11 +81,8 @@ class Tome (Gtk.Notebook):
                 dummychild = Gtk.Box ()
                 # abuse unrelated object to hold data
                 dummychild.childnum = self._n_real_tabs ()
-                l = Gtk.Label ("")
-                l.set_size_request (self.tab_width, -1)
-                self.label_widgets.append (l)
                 self.right_idx = min (self.right_idx + 1, self.get_n_pages ())
-                super (Tome, self).append_page (dummychild, l)
+                super (Tome, self).append_page (dummychild, None)
                 super (Tome, self).set_tab_reorderable (dummychild, self.reorderable)
         self.show_all ()
         self.realize ()
@@ -107,6 +122,8 @@ class Tome (Gtk.Notebook):
         return True
 
     def _resize_cb (self, *args):
+        if self.suppress_resize:
+            return
         self._update_tabs ()
         return True
 
@@ -117,52 +134,48 @@ class Tome (Gtk.Notebook):
         label = self.labels.pop (old_idx)
         self.labels.insert (new_idx, label)
         for i in xrange (self._n_real_tabs ()):
-            dummy2 = super (Tome, self).get_nth_page (i)
-            super (Tome, self).set_tab_label (dummy2, None)
-        for i in xrange (self._n_real_tabs ()):
-            dummy2 = super (Tome, self).get_nth_page (i)
-            dummy2.childnum = i
-            super (Tome, self).set_tab_label (dummy2, self.label_widgets[i])
+            super (Tome, self).get_nth_page (i).childnum = i
+        self.label_state = None
         self.set_current_page (new_idx)
         self.emit ("tome-page-reordered", old_idx, new_idx)
         return True
 
-    def append_page (self, label_text):
-        self.labels.append (label_text)
+    def append_page (self, label):
+        self.labels.append (label)
         self.emit ("tome-page-added", self.get_n_pages () - 1)
         self.right_idx = self.get_n_pages ()
         self._update_tabs ()
         self.set_current_page (-1)
 
-    def prepend_page (self, label_text):
-        return self.insert_page (label_text, 0)
+    def prepend_page (self, label):
+        return self.insert_page (label, 0)
 
-    def insert_page (self, label_text, position):
+    def insert_page (self, label, position):
         if position == -1:
-            return self.append_page (label_text)
+            return self.append_page (label)
         if position < 0:
             position += self.get_n_pages ()
-        self.labels.insert (position, label_text)
+        self.labels.insert (position, label)
         self.emit ("tome-page-added", position)
         self.right_idx = max (self._n_real_tabs (), position)
         self.set_current_page (position)
 
-    def bulk_append_pages (self, label_texts):
-        inserted_page = self.get_n_pages () - 1 + min (1, len (label_texts))
-        self.labels += label_texts
+    def bulk_append_pages (self, labels):
+        inserted_page = self.get_n_pages () - 1 + min (1, len (labels))
+        self.labels += labels
         self._update_tabs ()
         self.set_current_page (inserted_page)
 
-    def bulk_prepend_pages (self, label_texts):
-        return self.bukl_insert_pages (label_texts, 0)
+    def bulk_prepend_pages (self, labels):
+        return self.bukl_insert_pages (labels, 0)
 
-    def bulk_insert_pages (self, label_texts, position):
+    def bulk_insert_pages (self, labels, position):
         if position == -1:
-            return self.bulk_append_pages (label_text)
+            return self.bulk_append_pages (labels)
         if position < 0:
             position += self.get_n_pages ()
-        self.labels = self.labels[:position] + label_texts + self.labels[position:]
-        for i in xrange (position, len (label_texts)):
+        self.labels = self.labels[:position] + labels + self.labels[position:]
+        for i in xrange (position, len (labels)):
             self.emit ("tome-page-added", i)
         self.right_idx = max (self._n_real_tabs (), position)
         self.set_current_page (position)
@@ -191,19 +204,29 @@ class Tome (Gtk.Notebook):
         if self.right_idx > page_num:
             self.right_idx = max (self._n_real_tabs (), self.right_idx - 1)
         self.labels.pop (page_num)
+        self.label_state = None
         self._update_tabs ()
         self.emit ("tome-page-removed", page_num)
 
-    def set_tab_label_text (self, page_num, tab_text):
+    def set_tab_label (self, page_num, tab_label):
         if page_num < 0:
             page_num += self.get_n_pages ()
         assert page_num < self.get_n_pages ()
-        self.labels[page_num] = tab_text
+        self.labels[page_num] = tab_label
         if page_num >= self._get_left_idx () and page_num < self.right_idx:
+            self.label_state = None
             self._update_labels ()
 
-    def get_tab_label_text (self, page_num):
+    def get_tab_label (self, page_num):
         if page_num < 0:
             page_num += self.get_n_pages ()
         assert page_num < self.get_n_pages ()
         return self.labels[page_num]
+
+    def set_tab_label_text (self, page_num, tab_text):
+        self.set_tab_label (page_num, Gtk.Label (tab_text))
+
+    def get_tab_label_text (self, page_num):
+        label = self.get_tab_label (page_num)
+        if isinstance (label, Gtk.Label):
+            return label.get_text ()
