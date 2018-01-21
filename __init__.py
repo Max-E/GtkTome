@@ -90,7 +90,7 @@ class Tome (Gtk.Notebook):
         elif page_num <= 0 and left_idx > 0:
             last_real_tab = self._n_real_tabs () - 1
             # we want true_idx to be the first real tab
-            self.right_idx = self.true_idx + last_real_tab
+            self.right_idx = max (self.true_idx + last_real_tab, self._n_real_tabs ())
             super (Tome, self).set_current_page (last_real_tab)
             super (Tome, self).set_current_page (1)
         else:
