@@ -185,7 +185,8 @@ class Tome (Gtk.Notebook):
         if page_num < 0:
             page_num += self.get_n_pages ()
         assert page_num < self.get_n_pages ()
-        if self.true_idx > page_num:
+        removing_last = page_num + 1 == self.get_n_pages ()
+        if self.true_idx > page_num or self.true_idx == page_num and removing_last:
             self.true_idx -= 1
         if self.right_idx > page_num:
             self.right_idx = max (self._n_real_tabs (), self.right_idx - 1)
