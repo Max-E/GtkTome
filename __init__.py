@@ -10,9 +10,10 @@ class Tome (Gtk.Notebook):
         "switch-tome-page": (GObject.SIGNAL_RUN_LAST, None, (int,)),
         "tome-page-added": (GObject.SIGNAL_RUN_LAST, None, (int,)),
         "tome-page-removed": (GObject.SIGNAL_RUN_LAST, None, (int,)),
+        "tome-page-reordered": (GObject.SIGNAL_RUN_LAST, None, (int, int,)),
     }
 
-    def __init__ (self, tab_width, *args, **kwargs):
+    def __init__ (self, tab_width, reorderable, *args, **kwargs):
         super (Tome, self).__init__ (*args, **kwargs)
         self.tab_width = tab_width
         self.true_idx = -1
@@ -22,6 +23,8 @@ class Tome (Gtk.Notebook):
         self.suppress_switch = False
         self.connect_after ("switch-page", self._switch_page_cb)
         self.connect_after ("size-allocate", self._resize_cb)
+        self.connect_after ("page-reordered", self._reorder_cb)
+        self.reorderable = reorderable
         # tomes are always scrollable
         self.set_scrollable (True)
         self.set_scrollable = None
@@ -57,11 +60,15 @@ class Tome (Gtk.Notebook):
             targ = min (self.get_n_pages (), self._n_real_tabs () + targ_mag)
             add = targ - self._n_real_tabs ()
             for _ in xrange (add):
+                dummychild = Gtk.Box ()
+                # abuse unrelated object to hold data
+                dummychild.childnum = self._n_real_tabs ()
                 l = Gtk.Label ("")
                 l.set_size_request (self.tab_width, -1)
                 self.label_widgets.append (l)
                 self.right_idx = min (self.right_idx + 1, self.get_n_pages ())
-                super (Tome, self).append_page (Gtk.Box (), l)
+                super (Tome, self).append_page (dummychild, l)
+                super (Tome, self).set_tab_reorderable (dummychild, self.reorderable)
         self.show_all ()
         self.realize ()
         self.set_current_page (true_idx)
@@ -101,6 +108,23 @@ class Tome (Gtk.Notebook):
 
     def _resize_cb (self, *args):
         self._update_tabs ()
+        return True
+
+    def _reorder_cb (self, _book, dummychild, page_num):
+        left_idx = self._get_left_idx ()
+        old_idx = left_idx + dummychild.childnum
+        new_idx = left_idx + page_num
+        label = self.labels.pop (old_idx)
+        self.labels.insert (new_idx, label)
+        for i in xrange (self._n_real_tabs ()):
+            dummy2 = super (Tome, self).get_nth_page (i)
+            super (Tome, self).set_tab_label (dummy2, None)
+        for i in xrange (self._n_real_tabs ()):
+            dummy2 = super (Tome, self).get_nth_page (i)
+            dummy2.childnum = i
+            super (Tome, self).set_tab_label (dummy2, self.label_widgets[i])
+        self.set_current_page (new_idx)
+        self.emit ("tome-page-reordered", old_idx, new_idx)
         return True
 
     def append_page (self, label_text):

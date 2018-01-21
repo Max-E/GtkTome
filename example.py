@@ -21,7 +21,7 @@ win.add (windowbox)
 tabbar = Gtk.HBox ()
 windowbox.pack_start (tabbar, False, False, 0)
 
-tome = Tome (133)
+tome = Tome (133, True)
 tabbar.pack_start (tome, True, True, 0)
 
 lastbutton = Gtk.Button (label = "Last")
@@ -79,8 +79,9 @@ tome.insert_page ("Insert tab title", 1)
 def fixtitles (tome, page_num):
     for i in xrange (page_num, tome.get_n_pages ()):
         text = tome.get_tab_label_text (i)
-        pfx, _ = text.rsplit (None, 1)
-        tome.set_tab_label_text (i, "{} {})".format (pfx, i))
+        if text.startswith ("Appended"):
+            pfx, _ = text.rsplit (None, 1)
+            tome.set_tab_label_text (i, "{} {})".format (pfx, i))
     return True
 tome.connect ("tome-page-removed", fixtitles)
 
@@ -88,6 +89,17 @@ def addpage (tome, page_num):
     print "added", page_num
     return True
 tome.connect ("tome-page-added", addpage)
+
+def reorder (tome, old_page_num, new_page_num):
+    lower = min (old_page_num, new_page_num)
+    upper = max (old_page_num, new_page_num) + 1
+    for i in xrange (lower, upper):
+        text = tome.get_tab_label_text (i)
+        if text.startswith ("Appended"):
+            pfx, _ = text.rsplit (None, 1)
+            tome.set_tab_label_text (i, "{} {})".format (pfx, i))
+    return True
+tome.connect ("tome-page-reordered", reorder)
 
 win.show_all ()
 
