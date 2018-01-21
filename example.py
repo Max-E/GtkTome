@@ -51,12 +51,12 @@ removebutton.connect ("clicked", removetab)
 addbutton = Gtk.Button (image = Gtk.Image (stock = Gtk.STOCK_ADD))
 tabbar.pack_end (addbutton, False, False, 0)
 
-total_append_count = 0
+total_append_count = 1000000
 def addtab (button = None):
     global total_append_count
-    total_append_count += 1
     npages = tome.get_n_pages ()
     tome.append_page ("Appended tab {} (tab {})".format (total_append_count, npages))
+    total_append_count += 1
     return True
 addbutton.connect ("clicked", addtab)
 
